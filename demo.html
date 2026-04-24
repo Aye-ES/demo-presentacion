@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo Arquitectura Web</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial, Helvetica, sans-serif;
+    background:#0f172a;
+    color:#e5e7eb;
+    padding:30px;
+}
+
+.container{
+    max-width:950px;
+    margin:auto;
+}
+
+.card{
+    background:#111827;
+    border-radius:18px;
+    padding:28px;
+    box-shadow:0 15px 35px rgba(0,0,0,.35);
+}
+
+h1{
+    font-size:33px;
+    margin-bottom:10px;
+}
+
+.sub{
+    color:#94a3b8;
+    margin-bottom:22px;
+    font-size:18px;
+}
+
+.buttons{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:16px;
+}
+
+button{
+    border:none;
+    padding:14px 22px;
+    border-radius:12px;
+    font-weight:bold;
+    cursor:pointer;
+    font-size:16px;
+    transition:.25s;
+}
+h2{
+    text-align:center;
+    margin:20px 0 10px 0;
+}
+button:hover{
+    transform:translateY(-2px);
+}
+
+.red{background:#dc2626;color:#fff;}
+.green{background:#16a34a;color:#fff;}
+.blue{background:#2563eb;color:#fff;}
+
+.mode{
+    margin:15px 0;
+    font-size:22px;
+    font-weight:bold;
+}
+
+input{
+    width:100%;
+    padding:16px;
+    border-radius:12px;
+    border:1px solid #334155;
+    background:#1e293b;
+    color:#fff;
+    font-size:16px;
+    margin-bottom:15px;
+}
+
+.result{
+    margin-top:15px;
+    padding:18px;
+    border-radius:14px;
+    line-height:1.8;
+    font-weight:bold;
+    font-size:20px;
+}
+
+.bad{background:#7f1d1d;}
+.good{background:#14532d;}
+
+.arch{
+    margin-top:20px;
+    background:#1e293b;
+    padding:18px;
+    border-radius:14px;
+    line-height:1.8;
+    font-size:22px;
+}
+
+small{
+    color:#94a3b8;
+    display:block;
+    margin-top:18px;
+    font-size:16px;
+}
+</style>
+
+<script>
+let mode = "inseguro";
+
+function setMode(m){
+    mode = m;
+
+    let label = document.getElementById("modeLabel");
+    let payload = document.getElementById("payload");
+    let result = document.getElementById("result");
+
+    payload.value = "";
+    result.innerHTML = "";
+    result.className = "";
+
+    if(m === "inseguro"){
+        label.innerHTML = "🔴 Modo Inseguro";
+    }else{
+        label.innerHTML = "🟢 Modo Seguro";
+    }
+
+    updateArch();
+}
+
+function loadPayload(){
+    document.getElementById("payload").value =
+        "&lt;script&gt;alert('XSS')&lt;/script&gt;";
+}
+
+function sendRequest(){
+    let payload = document.getElementById("payload").value.trim();
+    let result = document.getElementById("result");
+
+    if(payload === ""){
+        result.className = "result bad";
+        result.innerHTML = "Debe cargar o escribir una solicitud maliciosa.";
+        return;
+    }
+
+    if(mode === "inseguro"){
+        result.className = "result bad";
+        result.innerHTML =
+            "POST /search HTTP/1.1<br>" +
+            "Status: 200 OK<br>" +
+            "Solicitud pasó directamente desde Internet a la aplicación.<br>" +
+            "No existe WAF, validación ni filtros.<br>" +
+            "El backend procesa el payload malicioso.<br>" +
+            "RIESGO: XSS / SQLi / Compromiso de datos.";
+    }else{
+        result.className = "result good";
+        result.innerHTML =
+            "POST /search HTTP/1.1<br>" +
+            "Status: 403 Forbidden<br>" +
+            "CDN/WAF inspeccionó la solicitud.<br>" +
+            "Patrón XSS detectado.<br>" +
+            "Solicitud bloqueada antes del backend.";
+    }
+}
+
+function updateArch(){
+    let arch = document.getElementById("archText");
+
+    if(mode === "inseguro"){
+        arch.innerHTML =
+            "Internet → Aplicación Web pública(Sin WAF) → Backend expuesto(sin logs) → Base de Datos pública(sin segmentar)";
+    }else{
+        arch.innerHTML =
+            "Internet → CDN/WAF → IAM/MFA → API Gateway → Backend privado → BD cifrada → Logs/SIEM";
+    }
+}
+
+window.onload = function(){
+    setMode("inseguro");
+};
+</script>
+
+</head>
+
+<body>
+
+<div class="container">
+<div class="card">
+
+<h1>Arquitectura de una aplicación Web: Insegura vs Segura</h1>
+<div class="sub">Demo Comparativo</div>
+
+<div class="buttons">
+<button class="red" onclick="setMode('inseguro')">🔴 Modo Inseguro</button>
+<button class="green" onclick="setMode('seguro')">🟢 Modo Seguro</button>
+</div>
+
+<div id="modeLabel" class="mode"></div>
+
+<h2>Comentario del usuario para el blog:</h2>
+<input
+type="text"
+id="payload"
+placeholder="Escribe tu comentario para el blog aquí:">
+
+<div class="buttons">
+<button class="blue" onclick="loadPayload()">📋 Cargar payload</button>
+<button class="green" onclick="sendRequest()">▶ Enviar solicitud</button>
+</div>
+
+<div id="result"></div>
+
+<div class="arch">
+<strong>Flujo Arquitectónico:</strong><br>
+<span id="archText"></span>
+</div>
+
+<small>
+MODULO 4 - Ciberseguridad y desarrollo de software seguro y seguridad en aplicaciones web.
+</small>
+
+</div>
+</div>
+
+</body>
+</html>
